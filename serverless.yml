@@ -4,12 +4,17 @@ provider:
   name: aws
   runtime: nodejs14.x
   profile: serverless-template
+  region: us-east-1
+  deploymentBucket:
+    name: deployments.bryansuralta
+    blockPublicAccess: true
 
 plugins:
   - serverless-s3-sync
 
 custom:
   bucketName: template.bryansuralta.com
+  originAccessIdentity: E28QX0XFRF4HI2
   s3Sync:
     - bucketName: ${self:custom.bucketName}
       localDir: build
@@ -20,10 +25,12 @@ resources:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: ${self:custom.bucketName}
-        AccessControl: PublicRead
-        WebsiteConfiguration:
-          IndexDocument: index.html
-          ErrorDocument: index.html
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+
     s3AccessPolicy:
       Type: AWS::S3::BucketPolicy
       Properties:
@@ -33,7 +40,8 @@ resources:
           Statement:
             - Sid: PublicReadGetObject
               Effect: Allow
-              Principal: "*"
+              Principal:
+                AWS: "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${self:custom.originAccessIdentity}"
               Action:
                 - s3:GetObject
               Resource: arn:aws:s3:::${self:custom.bucketName}/*
